@@ -4,6 +4,7 @@ from typing import List
 from uuid import UUID
 from dotenv import load_dotenv
 from fastapi.security import APIKeyHeader
+from fastapi.staticfiles import StaticFiles
 
 import os
 import shutil
@@ -51,12 +52,12 @@ def create_master(
 
 # READ ALL
 @app.get("/masters/", response_model=List[MasterResponse])
-def read_masters(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), token: str = Depends(verify_token)):
+def read_masters(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
   return db.query(Master).offset(skip).limit(limit).all()
 
 # READ ONE
 @app.get("/masters/{master_id}", response_model=MasterResponse)
-def read_master(master_id: UUID, db: Session = Depends(get_db), token: str = Depends(verify_token)):
+def read_master(master_id: UUID, db: Session = Depends(get_db)):
   master = db.query(Master).filter(Master.id == master_id).first()
   if not master:
     raise HTTPException(status_code=404, detail="Master not found")
@@ -103,8 +104,11 @@ def upload_photo(
     shutil.copyfileobj(file.file, buffer)
 
   # save path to db as main_photo
-  master.main_photo = file_path
+  master.main_photo = file_name
   db.commit()
   db.refresh(master)
 
   return {"filename": file_name, "url": f"/{file_path}"}
+
+app.mount("/static", StaticFiles(directory="uploads"), name="static")
+
