@@ -13,11 +13,20 @@ from dotenv import load_dotenv
 
 load_dotenv()
 REDIS_HOST = os.getenv("REDIS_HOST")
+REDIS_PORT = os.getenv("REDIS_PORT")
+REDIS_USERNAME = os.getenv("REDIS_USERNAME")
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-r = redis.Redis(host=REDIS_HOST, port=6379, db=0)
+r = redis.Redis(
+    host=REDIS_HOST,
+    port=REDIS_PORT,
+    decode_responses=True,
+    username=REDIS_USERNAME,
+    password=REDIS_PASSWORD,
+)
 
 async def notify_new_application(app_type: str, app_id: str, db: Session):
     model_apps_count = db.query(Application).count()
