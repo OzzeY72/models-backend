@@ -154,3 +154,11 @@ class AllApplicationsResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class RegisterRequest(BaseModel):
+    telegram_id: str
+    phonenumber: str
+
+class VerifyRequest(BaseModel):
+    telegram_id: str
+    code: str

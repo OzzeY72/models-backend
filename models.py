@@ -13,6 +13,15 @@ class BodyType(enum.Enum):
     Athletic = "Athletic"
     Curvy = "Curvy"
 
+class WorkUser(Base):
+    __tablename__ = "work_users"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    telegram_id = Column(String, unique=True, nullable=False)
+    phonenumber = Column(String, unique=True, nullable=False)
+    otp_code = Column(String, nullable=True)
+    verified = Column(Boolean, default=False)
+
 class Master(Base):
     __tablename__ = "masters"
 

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Master Profile</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<!-- Swiper -->
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"
+/>
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+<style>
+  body {
+    font-family: system-ui, sans-serif;
+    background: #f9f9f9;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+  }
+
+  .container {
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  h2 {
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
+
+  .swiper {
+    width: 100%;
+    height: 400px;
+  }
+
+  .swiper-slide {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #ddd;
+  }
+
+  .swiper-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .swiper-slide-prev, .swiper-slide-next {
+    opacity: 0.6;
+    transform: scale(0.9);
+  }
+
+  .swiper-pagination-bullet {
+    background: #0088cc;
+    opacity: 0.5;
+  }
+
+  .swiper-pagination-bullet-active {
+    opacity: 1;
+  }
+
+  .loading {
+    margin-top: 40px;
+    color: #777;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2 id="header">Loading...</h2>
+
+  <div class="swiper mySwiper" id="swiper-container" style="display: none;">
+    <div class="swiper-wrapper" id="swiper-wrapper">
+      <!-- slides will be added here -->
+    </div>
+
+    <!-- пагинация -->
+    <div class="swiper-pagination"></div>
+  </div>
+
+  <p id="loading" class="loading">Loading data...</p>
+</div>
+
+<script>
+const BASE_URL = "http://localhost:8000"; // ← замени на свой backend
+const tg = window.Telegram.WebApp;
+tg.expand();
+
+const header = document.getElementById("header");
+const loading = document.getElementById("loading");
+const swiperContainer = document.getElementById("swiper-container");
+const swiperWrapper = document.getElementById("swiper-wrapper");
+
+let swiper;
+
+// Получаем UUID из URL
+const parts = window.location.pathname.split("/");
+const masterId = parts[parts.length - 1];
+
+async function loadMaster() {
+  try {
+    const res = await fetch(`${BASE_URL}/masters/${masterId}`);
+    const data = await res.json();
+    header.innerText = `${data.name}, ${data.age}`;
+    const photos = data.photos || [];
+
+    if (photos.length > 0) {
+      swiperWrapper.innerHTML = "";
+      photos.forEach(p => {
+        const slide = document.createElement("div");
+        slide.className = "swiper-slide";
+        slide.innerHTML = `<img src="${BASE_URL}/static/${p}" alt="photo">`;
+        swiperWrapper.appendChild(slide);
+      });
+
+      swiperContainer.style.display = "block";
+      initSwiper();
+    } else {
+      header.innerText += "\n(No photos)";
+    }
+  } catch (err) {
+    header.innerText = "Error loading data";
+    console.error(err);
+  } finally {
+    loading.style.display = "none";
+  }
+}
+
+function initSwiper() {
+  swiper = new Swiper(".mySwiper", {
+    loop: false,
+    centeredSlides: true,
+    slidesPerView: 1.2,
+    spaceBetween: 12,
+    initialSlide: 0,
+    pagination: {
+      el: ".swiper-pagination",
+      clickable: true,
+    },
+    breakpoints: {
+      480: { slidesPerView: 1.4 },
+      640: { slidesPerView: 1.6 },
+    },
+  });
+}
+
+loadMaster();
+</script>
+</body>
+</html>
