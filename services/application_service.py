@@ -4,21 +4,20 @@ from fastapi import UploadFile, HTTPException
 from typing import Optional, List
 
 from sqlalchemy import Boolean
-from schemas import ApplicationCreate, ApplicationUpdate
+from schemas import AgencySpaApplicationCreate, ApplicationCreate, ApplicationUpdate
 from sqlalchemy.orm import Session
 from models import AgencySpa, AgencySpaApplication, Application, Master
 import redis 
 import json
 from dotenv import load_dotenv
 
+from utils import delete_file, delete_files, save_files
+
 load_dotenv()
 REDIS_HOST = os.getenv("REDIS_HOST")
 REDIS_PORT = os.getenv("REDIS_PORT")
 REDIS_USERNAME = os.getenv("REDIS_USERNAME")
 REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
-
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 r = redis.Redis(
     host=REDIS_HOST,
@@ -42,42 +41,14 @@ async def notify_new_application(app_type: str, app_id: str, db: Session):
 
 async def create_application_service(
     db: Session,
-    name: str,
-    age: int,
-    phonenumber: str,
-    address: Optional[str],
-    height: Optional[float],
-    weight: Optional[float],
-    cupsize: Optional[int],
-    clothsize: Optional[int],
-    price_1h: Optional[float],
-    price_2h: Optional[float],
-    price_full_day: Optional[float],
-    file: Optional[UploadFile],
-    is_top: Optional[Boolean]
+    create_application: ApplicationCreate,
+    files: Optional[UploadFile],
 ):
-    file_name = None
-    if file:
-        ext = os.path.splitext(file.filename)[1] or ".jpg"
-        file_name = f"{uuid4()}{ext}"
-        file_path = os.path.join(UPLOAD_DIR, file_name)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+    saved_files = save_files(files)
 
     app = Application(
-        name=name,
-        age=age,
-        phonenumber=phonenumber,
-        address=address,
-        height=height,
-        weight=weight,
-        cupsize=cupsize,
-        clothsize=clothsize,
-        price_1h=price_1h,
-        price_2h=price_2h,
-        price_full_day=price_full_day,
-        main_photo=file_name,
-        is_top=is_top
+        **create_application.model_dump(),
+        photos=saved_files,
     )
     db.add(app)
     db.commit()
@@ -92,11 +63,7 @@ def decline_application(db: Session, application_id: UUID):
     if not app:
         raise ValueError("Application not found")
 
-    # Удаляем файл фото, если есть
-    if app.main_photo:
-        file_path = os.path.join(UPLOAD_DIR, app.main_photo)
-        if os.path.exists(file_path):
-            os.remove(file_path)
+    delete_files(app.photos)
 
     db.delete(app)
     db.commit()
@@ -109,22 +76,10 @@ def approve_application(db: Session, application_id: UUID):
 
     # Создаём модель в Master
     master = Master(
-        name=app.name,
-        age=app.age,
-        phonenumber=app.phonenumber,
-        address=app.address,
-        height=app.height,
-        weight=app.weight,
-        cupsize=app.cupsize,
-        clothsize=app.clothsize,
-        price_1h=app.price_1h,
-        price_2h=app.price_2h,
-        price_full_day=app.price_full_day,
-        main_photo=app.main_photo,
-        is_top=False
+        **app
     )
     db.add(master)
-    db.delete(app)  # удаляем анкету
+    db.delete(app)
     db.commit()
     db.refresh(master)
     return master
@@ -142,7 +97,7 @@ def get_application(db: Session, app_id):
 
 def update_application(db: Session, app_id, app_update: ApplicationUpdate):
     app = get_application(db, app_id)
-    for key, value in app_update.dict(exclude_unset=True).items():
+    for key, value in app_update.model_dump(exclude_unset=True).items():
         setattr(app, key, value)
     db.commit()
     db.refresh(app)
@@ -154,46 +109,19 @@ def delete_application(db: Session, app_id):
     db.commit()
     return {"detail": "Application deleted"}
 
-def upload_application_photo(db: Session, app_id, file: UploadFile):
-    app = get_application(db, app_id)
-    file_ext = os.path.splitext(file.filename)[1] or ".jpg"
-    file_name = f"{app_id}{file_ext}"
-    file_path = os.path.join(UPLOAD_DIR, file_name)
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    app.main_photo = file_name
-    db.commit()
-    db.refresh(app)
-    return {"filename": file_name, "url": f"/{file_path}"}
-
 async def get_agency_spa_applications_service(db: Session):
     return db.query(AgencySpaApplication).all()
 
 async def create_agency_spa_application_service(
     db: Session,
-    name: str,
-    phone: str,
-    address: Optional[str],
-    is_agency: bool,
-    files,
+    create_agency_application: AgencySpaApplicationCreate,
+    files: List[UploadFile],
 ):
-    print(files, "54321")
-    file_name = None
-    if files:
-        ext = os.path.splitext(files.filename)[1]
-        file_name = f"{uuid4()}{ext}"
-        file_path = os.path.join(UPLOAD_DIR, file_name)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(files.file, buffer)
-
-    print(file_name, "4321")
-
+    saved_files = save_files(files)
+    
     app = AgencySpaApplication(
-        name=name,
-        phone=phone,
-        address=address,
-        is_agency=is_agency,
-        photos=file_name,
+        **create_agency_application.model_dump(),
+        photos=saved_files,
     )
     db.add(app)
     db.commit()

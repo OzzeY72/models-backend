@@ -1,14 +1,14 @@
 from http.client import HTTPException
 import os
-import shutil
 from typing import List
 from uuid import UUID, uuid4
-from schemas import AgencySpaCreate, AgencySpaUpdate
+from schemas import AgencySpaCreate, AgencySpaUpdate, MasterCreate
 from sqlalchemy.orm import Session
 
 from fastapi import UploadFile
 
 from models import AgencySpa, Master
+from utils import delete_files, save_files
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -31,47 +31,19 @@ def get_agency(db: Session, agency_id: UUID):
 async def create_master_in_agency(
     db: Session,
     agency_id: UUID,
-    name: str,
-    age: int,
-    phonenumber: str,
-    address: str,
-    height: float,
-    weight: float,
-    cupsize: int,
-    clothsize: int,
-    price_1h: float,
-    price_2h: float,
-    price_full_day: float,
-    is_top: bool,
-    file = None,
+    create_master: MasterCreate,
+    files: List[UploadFile]
 ):
-    file_name = None
-    if file:
-        ext = os.path.splitext(file.filename)[1]
-        file_name = f"{uuid4()}{ext}"
-        file_path = os.path.join(UPLOAD_DIR, file_name)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+    saved_files = save_files(files)
 
     agency = db.query(AgencySpa).filter(AgencySpa.id == agency_id).first()
     if not agency:
         raise ValueError("Agency/Spa not found")
 
     master = Master(
-        name=name,
-        age=age,
-        phonenumber=phonenumber,
-        address=address,
-        height=height,
-        weight=weight,
-        cupsize=cupsize,
-        clothsize=clothsize,
-        price_1h=price_1h,
-        price_2h=price_2h,
-        price_full_day=price_full_day,
-        is_top=is_top,
-        main_photo=file_name,
-        agency_spa=agency
+        **create_master.model_dump(),
+        agency_spa=agency,
+        photos=saved_files
     )
     db.add(master)
     db.commit()
@@ -79,21 +51,11 @@ async def create_master_in_agency(
     return master
 
 def create_agency(db: Session, agency_create: AgencySpaCreate, files: List[UploadFile] = []):
-    photo_names = []
-    for file in files:
-        ext = os.path.splitext(file.filename)[1] or ".jpg"
-        file_name = f"{uuid4()}{ext}"
-        file_path = os.path.join(UPLOAD_DIR, file_name)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        photo_names.append(file_name)
+    saved_files = save_files(files)
 
     agency = AgencySpa(
-        name=agency_create.name,
-        phone=agency_create.phone,
-        address=agency_create.address,
-        is_agency=agency_create.is_agency,
-        photos=photo_names,
+        **agency_create.model_dump(),
+        photos=saved_files,
     )
     db.add(agency)
     db.commit()
@@ -102,7 +64,7 @@ def create_agency(db: Session, agency_create: AgencySpaCreate, files: List[Uploa
 
 def update_agency(db: Session, agency_id: UUID, agency_update: AgencySpaUpdate):
     agency = get_agency(db, agency_id)
-    for key, value in agency_update.dict(exclude_unset=True).items():
+    for key, value in agency_update.model_dump(exclude_unset=True).items():
         setattr(agency, key, value)
     db.commit()
     db.refresh(agency)
@@ -110,6 +72,8 @@ def update_agency(db: Session, agency_id: UUID, agency_update: AgencySpaUpdate):
 
 def delete_agency(db: Session, agency_id: UUID):
     agency = get_agency(db, agency_id)
+    delete_files(agency.photos)
+
     db.delete(agency)
     db.commit()
     return {"detail": "Agency/SPA deleted"}

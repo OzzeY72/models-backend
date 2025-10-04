@@ -15,4 +15,4 @@ ENV REDIS_USERNAME=""
 ENV REDIS_PASSWORD=""
 ENV SQLALCHEMY_DATABASE_URL=""
 
-CMD alembic revision --autorgenerate -m "Init" && alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+CMD alembic revision --autogenerate -m "Init" && alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 --reload

@@ -1,10 +1,17 @@
 import datetime
 from click import DateTime
-from sqlalchemy import Column, Integer, String, Float, JSON, Boolean, ARRAY, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, Enum, Boolean, ARRAY, ForeignKey
 import uuid
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from database import Base
+import enum  
+
+class BodyType(enum.Enum):
+    Skinny = "Skinny"
+    Slim = "Slim"
+    Athletic = "Athletic"
+    Curvy = "Curvy"
 
 class Master(Base):
     __tablename__ = "masters"
@@ -17,11 +24,16 @@ class Master(Base):
     height = Column(Float, nullable=True)
     weight = Column(Float, nullable=True)
     cupsize = Column(Integer, nullable=True)
-    clothsize = Column(Integer, nullable=True)
+
+    bodytype = Column(Enum(BodyType, name="bodytype_enum"), nullable=True)
+
     price_1h = Column(Float, nullable=True)
     price_2h = Column(Float, nullable=True)
     price_full_day = Column(Float, nullable=True)
-    main_photo = Column(String, nullable=True)
+
+    description = Column(String, nullable=True)
+    photos = Column(ARRAY(String), default=[])
+
     is_top = Column(Boolean, default=False)
 
     agency_spa_id = Column(UUID(as_uuid=True), ForeignKey("agencies_spa.id"), nullable=True)
@@ -34,6 +46,7 @@ class AgencySpa(Base):
     phone = Column(String, nullable=False, unique=True)
     address = Column(String, nullable=True)
     is_agency = Column(Boolean, default=False)
+    model_count = Column(Integer, default=10)
 
     photos = Column(ARRAY(String), default=[])
 
@@ -50,11 +63,15 @@ class Application(Base):
     height = Column(Float, nullable=True)
     weight = Column(Float, nullable=True)
     cupsize = Column(Integer, nullable=True)
-    clothsize = Column(Integer, nullable=True)
+
+    bodytype = Column(Enum(BodyType, name="bodytype_enum"), nullable=True)
+
     price_1h = Column(Float, nullable=True)
     price_2h = Column(Float, nullable=True)
     price_full_day = Column(Float, nullable=True)
-    main_photo = Column(String, nullable=True)
+
+    description = Column(String, nullable=True)
+    photos = Column(ARRAY(String), default=[])
     is_top = Column(Boolean, default=False)
 
 class AgencySpaApplication(Base):
@@ -65,5 +82,6 @@ class AgencySpaApplication(Base):
     phone = Column(String, nullable=False, unique=True)
     address = Column(String, nullable=True)
     is_agency = Column(Boolean, default=False)
+    model_count = Column(Integer, default=10)
 
     photos = Column(String, nullable=False, default="")
