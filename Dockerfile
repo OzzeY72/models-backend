@@ -28,5 +28,5 @@ ENV REDIS_PASSWORD=""
 ENV SQLALCHEMY_DATABASE_URL=""
 
 EXPOSE 8000
-
-CMD alembic revision --autogenerate -m "Init" && alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+# alembic revision --autogenerate -m "Init"
+CMD alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 --reload
