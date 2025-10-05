@@ -13,6 +13,10 @@ from utils import delete_files, save_files
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+def is_user_owner(db: Session, user_data: dict, agency_id: UUID) -> bool:
+    agency = db.query(AgencySpa).filter(AgencySpa.id == agency_id).first()
+    return user_data.get("phonenumber") == agency.phone
+
 def get_agencies(db: Session, skip: int = 0, limit: int = 100):
     return db.query(AgencySpa).offset(skip).limit(limit).all()
 
@@ -62,10 +66,14 @@ def create_agency(db: Session, agency_create: AgencySpaCreate, files: List[Uploa
     db.refresh(agency)
     return agency
 
-def update_agency(db: Session, agency_id: UUID, agency_update: AgencySpaUpdate):
+def update_agency(db: Session, agency_id: UUID, agency_update: AgencySpaUpdate, files: List[UploadFile] = []):
     agency = get_agency(db, agency_id)
     for key, value in agency_update.model_dump(exclude_unset=True).items():
         setattr(agency, key, value)
+        
+    saved_files = save_files(files)
+    agency.photos = agency.photos + saved_files
+    
     db.commit()
     db.refresh(agency)
     return agency

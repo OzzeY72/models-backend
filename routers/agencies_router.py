@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, Form, File, UploadFile
+from fastapi import APIRouter, Depends, Form, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 from typing import Optional, List
 from uuid import UUID
 
 from database import get_db
-from services.agency_service import create_agency, create_master_in_agency, delete_agency, get_agencies, get_agencies_agency, get_agencies_spa, get_agency, update_agency
+from middleware import auth_middleware, verify_token
+from services.agency_service import create_agency, create_master_in_agency, delete_agency, get_agencies, get_agencies_agency, get_agencies_spa, get_agency, is_user_owner, update_agency
 from schemas import AgencySpaCreate, AgencySpaResponse, AgencySpaUpdate, MasterCreate
 
 router = APIRouter(prefix="/agencies", tags=["Agencies/SPA"])
@@ -14,6 +15,7 @@ def create_agency_route(
     agency: AgencySpaCreate = Depends(AgencySpaCreate.as_form),
     files: List[UploadFile] = File([]),
     db: Session = Depends(get_db),
+    token: str = Depends(verify_token)
 ):
     return create_agency(db, agency_create=agency, files=files)
 
@@ -23,7 +25,12 @@ async def add_master_to_agency(
     create_master: MasterCreate = Depends(MasterCreate.as_form),
     files: List[UploadFile] = File([]),
     db: Session = Depends(get_db),
+    auth=Depends(auth_middleware),
 ):
+    if auth["type"] == "user":
+        if not is_user_owner(db, auth["user"], agency_id):
+            raise HTTPException(status_code=403, detail="You are not the owner of this agency/spa")
+        
     master = await create_master_in_agency(
         db=db,
         agency_id=agency_id,
@@ -53,12 +60,18 @@ def read_agency(agency_id: UUID, db: Session = Depends(get_db)):
 @router.put("/{agency_id}", response_model=AgencySpaResponse)
 def update_agency_route(
     agency_id: UUID,
-    agency_update: AgencySpaUpdate,
+    agency_update: AgencySpaUpdate = Depends(AgencySpaUpdate.as_form),
+    files: List[UploadFile] = File([]),
     db: Session = Depends(get_db),
+    auth=Depends(auth_middleware),
 ):
-    return update_agency(db, agency_id, agency_update)
+    if auth["type"] == "user":
+        if not is_user_owner(db, auth["user"], agency_id):
+            raise HTTPException(status_code=403, detail="You are not the owner of this agency/spa")
+        
+    return update_agency(db, agency_id, agency_update, files=files)
 
 # DELETE
 @router.delete("/{agency_id}")
-def delete_agency_route(agency_id: UUID, db: Session = Depends(get_db)):
+def delete_agency_route(agency_id: UUID, db: Session = Depends(get_db), token: str = Depends(verify_token)):
     return delete_agency(db, agency_id)

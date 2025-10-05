@@ -10,3 +10,5 @@ alembic
 python-dotenv
 asyncpg
 redis
+python-jose[cryptography]
+passlib[bcrypt]

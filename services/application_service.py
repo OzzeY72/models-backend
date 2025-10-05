@@ -1,3 +1,4 @@
+from re import S
 import os, shutil
 from uuid import UUID, uuid4
 from fastapi import UploadFile, HTTPException
@@ -76,7 +77,21 @@ def approve_application(db: Session, application_id: UUID):
 
     # Создаём модель в Master
     master = Master(
-        **app
+        id = app.id,
+        name = app.name,
+        age = app.age,
+        phonenumber = app.phonenumber,
+        address = app.address,
+        height = app.height,
+        weight = app.weight,
+        cupsize = app.cupsize,
+        bodytype = app.bodytype,
+        price_1h = app.price_1h,
+        price_2h = app.price_2h,
+        price_full_day = app.price_full_day,
+        description = app.description,
+        photos = app.photos,
+        is_top = app.is_top
     )
     db.add(master)
     db.delete(app)
@@ -95,10 +110,14 @@ def get_application(db: Session, app_id):
         raise HTTPException(status_code=404, detail="Application not found")
     return app
 
-def update_application(db: Session, app_id, app_update: ApplicationUpdate):
+def update_application(db: Session, app_id, app_update: ApplicationUpdate, files: List[UploadFile] = []):
     app = get_application(db, app_id)
     for key, value in app_update.model_dump(exclude_unset=True).items():
         setattr(app, key, value)
+        
+    saved_files = save_files(files)
+    app.photos = app.photos + saved_files
+    
     db.commit()
     db.refresh(app)
     return app
@@ -115,7 +134,7 @@ async def get_agency_spa_applications_service(db: Session):
 async def create_agency_spa_application_service(
     db: Session,
     create_agency_application: AgencySpaApplicationCreate,
-    files: List[UploadFile],
+    files: List[UploadFile] = []
 ):
     saved_files = save_files(files)
     

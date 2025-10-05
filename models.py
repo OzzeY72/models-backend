@@ -21,6 +21,8 @@ class WorkUser(Base):
     phonenumber = Column(String, unique=True, nullable=False)
     otp_code = Column(String, nullable=True)
     verified = Column(Boolean, default=False)
+    user_type = Column(String, nullable=True)
+    linked_profile_id = Column(UUID(as_uuid=True), nullable=True)
 
 class Master(Base):
     __tablename__ = "masters"
@@ -82,6 +84,7 @@ class Application(Base):
     description = Column(String, nullable=True)
     photos = Column(ARRAY(String), default=[])
     is_top = Column(Boolean, default=False)
+    telegram_id = Column(String, nullable=True)
 
 class AgencySpaApplication(Base):
     __tablename__ = "agency_spa_applications"
@@ -92,5 +95,6 @@ class AgencySpaApplication(Base):
     address = Column(String, nullable=True)
     is_agency = Column(Boolean, default=False)
     model_count = Column(Integer, default=10)
+    teleram_id = Column(String, nullable=True)
 
     photos = Column(String, nullable=False, default="")

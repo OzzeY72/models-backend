@@ -23,6 +23,7 @@ async def create_master(
     master: MasterCreate = Depends(MasterCreate.as_form),
     files: List[UploadFile] = File([]),
     db: Session = Depends(get_db),
+    token: str = Depends(verify_token)
 ):
   return await model_service.create_master_service(
       db=db,
@@ -61,8 +62,14 @@ def read_master(master_id: UUID, db: Session = Depends(get_db)):
     return model_service.get_master(db, master_id)
 
 @router.put("/masters/{master_id}", response_model=MasterResponse)
-def update_master(master_id: UUID, master_update: MasterUpdate, db: Session = Depends(get_db), token: str = Depends(verify_token)):
-    return model_service.update_master(db, master_id, master_update)
+def update_master(
+    master_id: UUID, 
+    master_update: MasterUpdate = Depends(MasterUpdate.as_form), 
+    files: List[UploadFile] = File([]), 
+    db: Session = Depends(get_db), 
+    token: str = Depends(verify_token)
+):
+    return model_service.update_master(db, master_id, master_update, files)
 
 @router.delete("/masters/{master_id}")
 def delete_master(master_id: UUID, db: Session = Depends(get_db), token: str = Depends(verify_token)):

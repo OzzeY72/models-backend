@@ -1,4 +1,13 @@
 venv/
-uploads/
+uploads/*.jpeg
+uploads/*.png
+uploads/*.jpg
+uploads/*.gif
+uploads/*.svg
+uploads/*.webp
+uploads/*.bmp
+uploads/*.tiff
+uploads/*.ico
+uploads/*.heic
 .env
 __pycache__/

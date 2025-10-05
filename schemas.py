@@ -117,9 +117,44 @@ class AgencySpaResponse(AgencySpaBase):
         from_attributes = True
 
 class ApplicationBase(MasterBase):
+    telegram_id: Optional[str]
     pass
 
-class ApplicationCreate(MasterCreate):
+class ApplicationCreate(ApplicationBase):
+    @classmethod
+    def as_form(
+        cls,
+        name: str = Form(...),
+        age: int = Form(...),
+        phonenumber: str = Form(...),
+        address: Optional[str] = Form(None),
+        height: Optional[float] = Form(None),
+        weight: Optional[float] = Form(None),
+        cupsize: Optional[int] = Form(None),
+        bodytype: Optional[BodyType] = Form(None),
+        price_1h: Optional[float] = Form(None),
+        price_2h: Optional[float] = Form(None),
+        price_full_day: Optional[float] = Form(None),
+        description: Optional[str] = Form(None),
+        is_top: Optional[bool] = Form(False),
+        telegram_id: Optional[str] = Form(None)
+    ):
+        return cls(
+            name=name,
+            age=age,
+            phonenumber=phonenumber,
+            address=address,
+            height=height,
+            weight=weight,
+            cupsize=cupsize,
+            bodytype=bodytype,
+            price_1h=price_1h,
+            price_2h=price_2h,
+            price_full_day=price_full_day,
+            description=description,
+            is_top=is_top,
+            telegram_id=telegram_id
+        )
     pass
 
 class ApplicationUpdate(ApplicationCreate):
@@ -133,9 +168,28 @@ class ApplicationResponse(ApplicationBase):
         orm_mode = True
 
 class AgencySpaApplicationBase(AgencySpaBase):
+    telegram_id: Optional[str] = None
     pass
 
-class AgencySpaApplicationCreate(AgencySpaCreate):
+class AgencySpaApplicationCreate(AgencySpaApplicationBase):
+    @classmethod
+    def as_form(
+        cls,
+        name = Form(...),
+        phone = Form(...),
+        address = Form(None),
+        is_agency = Form(...),
+        model_count = Form(None),
+        telegram_id: Optional[str] = Form(None)
+    ):
+        return cls(
+            name=name,
+            phone=phone,
+            address=address,
+            is_agency=is_agency,
+            model_count=model_count,
+            telegram_id=telegram_id
+        )
     pass
 
 class AgencySpaApplicationUpdate(AgencySpaApplicationCreate):

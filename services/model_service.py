@@ -63,10 +63,16 @@ def get_master(db: Session, master_id: UUID):
         raise HTTPException(status_code=404, detail="Master not found")
     return master
 
-def update_master(db: Session, master_id: UUID, master_update: MasterUpdate):
+def update_master(db: Session, master_id: UUID, master_update: MasterUpdate, files: List[UploadFile]):
     master = get_master(db, master_id)
     for key, value in master_update.model_dump(exclude_unset=True).items():
         setattr(master, key, value)
+
+    saved_files = save_files(files)
+    # master.photos = master.photos + saved_files
+    # Temporary solution: replace all photos with new ones
+    master.photos = saved_files
+    
     db.commit()
     db.refresh(master)
     return master
