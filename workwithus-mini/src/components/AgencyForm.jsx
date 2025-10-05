@@ -8,6 +8,7 @@ export default function AgencyForm({telegramId, is_agency = true}) {
     address: "",
     is_agency: is_agency,
     model_count: 0,
+    telegram_id: telegramId
   });
   const [files, setFiles] = useState([]);
   const [agencyId, setAgencyId] = useState(null);
@@ -56,7 +57,7 @@ export default function AgencyForm({telegramId, is_agency = true}) {
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
       files.forEach((f) => fd.append("files", f));
 
-      const res = await api.post("/agencies/", fd, {
+      const res = await api.post("/agency_spa_applications/", fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../api";
+import { useUser } from "../context/UserContext";
 
 export default function EscortForm({ telegramId, is_top = false }) {
   const [form, setForm] = useState({
@@ -16,8 +17,10 @@ export default function EscortForm({ telegramId, is_top = false }) {
     price_full_day: "",
     description: "",
     is_top: is_top,
+    telegram_id: telegramId,
   });
   const [files, setFiles] = useState([]);
+  const { refreshUser } = useUser();
 
   const handleChange = (key, value, isNumber = false) => {
     setForm((prev) => ({
@@ -32,12 +35,19 @@ export default function EscortForm({ telegramId, is_top = false }) {
       Object.entries(form).forEach(([key, val]) => fd.append(key, val));
       files.forEach((f) => fd.append("files", f));
 
-      await api.post("/masters/", fd, {
+      await api.post("/applications/", fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+
+      await refreshUser();
       alert("✅ Model successfully created!");
+
+      // 🔸 Редирект на главную
+      window.location.href = "/";
+
+      // 🔸 Если в Telegram WebApp — закрываем
       if (window.Telegram?.WebApp) {
-        window.Telegram.WebApp.close();
+        setTimeout(() => window.Telegram.WebApp.close(), 1500);
       }
     } catch (err) {
       console.error(err);
@@ -46,147 +56,120 @@ export default function EscortForm({ telegramId, is_top = false }) {
   };
 
   return (
-    <div className="p-6 space-y-4 max-w-md mx-auto bg-white shadow rounded-xl">
-      <h2 className="text-xl font-semibold mb-4">💃 Create Model Profile</h2>
+    <div className="p-6 max-w-md mx-auto bg-white shadow-lg rounded-2xl border border-gray-200 space-y-5">
+      <h2 className="text-xl font-semibold text-gray-800 text-center">
+        💃 Create Model Profile
+      </h2>
 
-      <label>
-        Name:
-        <input
-          type="text"
-          placeholder="Enter name"
-          value={form.name}
-          onChange={(e) => handleChange("name", e.target.value)}
-        />
-      </label>
+      {/* Поля формы */}
+      <div className="space-y-4">
+        {[
+          { key: "name", label: "Name", type: "text", placeholder: "Enter name" },
+          { key: "age", label: "Age", type: "number", placeholder: "Enter age" },
+          { key: "phonenumber", label: "Phone number", type: "text", placeholder: "+1..." },
+          { key: "address", label: "Address", type: "text", placeholder: "City, area..." },
+          { key: "height", label: "Height (cm)", type: "number", placeholder: "170" },
+          { key: "weight", label: "Weight (kg)", type: "number", placeholder: "55" },
+          { key: "cupsize", label: "Cup size", type: "number", placeholder: "3" },
+        ].map((field) => (
+          <label key={field.key} className="block text-left">
+            <span className="block text-sm text-gray-600">{field.label}</span>
+            <input
+              type={field.type}
+              placeholder={field.placeholder}
+              value={form[field.key]}
+              onChange={(e) =>
+                handleChange(field.key, e.target.value, field.type === "number")
+              }
+              className="w-full border border-gray-300 rounded-md p-2 mt-1 focus:ring-2 focus:ring-blue-400 outline-none"
+            />
+          </label>
+        ))}
 
-      <label>
-        Age:
-        <input
-          type="number"
-          placeholder="Enter age"
-          value={form.age}
-          onChange={(e) => handleChange("age", e.target.value, true)}
-        />
-      </label>
+        {/* Body type */}
+        <label className="block text-left">
+          <span className="block text-sm text-gray-600">Body type</span>
+          <select
+            value={form.bodytype}
+            onChange={(e) => handleChange("bodytype", e.target.value)}
+            className="w-full border border-gray-300 rounded-md p-2 mt-1 focus:ring-2 focus:ring-blue-400 outline-none bg-white"
+          >
+            <option value="Skinny">Skinny</option>
+            <option value="Slim">Slim</option>
+            <option value="Athletic">Athletic</option>
+            <option value="Curvy">Curvy</option>
+          </select>
+        </label>
 
-      <label>
-        Phone number:
-        <input
-          type="text"
-          placeholder="+1..."
-          value={form.phonenumber}
-          onChange={(e) => handleChange("phonenumber", e.target.value)}
-        />
-      </label>
+        {/* Prices */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <label className="block text-left">
+            <span className="block text-sm text-gray-600">1h (USD)</span>
+            <input
+              type="number"
+              placeholder="150"
+              value={form.price_1h}
+              onChange={(e) => handleChange("price_1h", e.target.value, true)}
+              className="w-full border border-gray-300 rounded-md p-2 mt-1 focus:ring-2 focus:ring-blue-400 outline-none"
+            />
+          </label>
 
-      <label>
-        Address:
-        <input
-          type="text"
-          placeholder="City, area..."
-          value={form.address}
-          onChange={(e) => handleChange("address", e.target.value)}
-        />
-      </label>
+          <label className="block text-left">
+            <span className="block text-sm text-gray-600">2h (USD)</span>
+            <input
+              type="number"
+              placeholder="250"
+              value={form.price_2h}
+              onChange={(e) => handleChange("price_2h", e.target.value, true)}
+              className="w-full border border-gray-300 rounded-md p-2 mt-1 focus:ring-2 focus:ring-blue-400 outline-none"
+            />
+          </label>
 
-      <label>
-        Height (cm):
-        <input
-          type="number"
-          placeholder="170"
-          value={form.height}
-          onChange={(e) => handleChange("height", e.target.value, true)}
-        />
-      </label>
+          <label className="block text-left">
+            <span className="block text-sm text-gray-600">Full day (USD)</span>
+            <input
+              type="number"
+              placeholder="800"
+              value={form.price_full_day}
+              onChange={(e) =>
+                handleChange("price_full_day", e.target.value, true)
+              }
+              className="w-full border border-gray-300 rounded-md p-2 mt-1 focus:ring-2 focus:ring-blue-400 outline-none"
+            />
+          </label>
+        </div>
 
-      <label>
-        Weight (kg):
-        <input
-          type="number"
-          placeholder="55"
-          value={form.weight}
-          onChange={(e) => handleChange("weight", e.target.value, true)}
-        />
-      </label>
+        {/* Description */}
+        <label className="block text-left">
+          <span className="block text-sm text-gray-600">Description</span>
+          <textarea
+            placeholder="Short description..."
+            value={form.description}
+            onChange={(e) => handleChange("description", e.target.value)}
+            className="w-full border border-gray-300 rounded-md p-2 mt-1 h-24 resize-none focus:ring-2 focus:ring-blue-400 outline-none"
+          />
+        </label>
 
-      <label>
-        Cup size:
-        <input
-          type="number"
-          placeholder="3"
-          value={form.cupsize}
-          onChange={(e) => handleChange("cupsize", e.target.value, true)}
-        />
-      </label>
+        {/* Upload photos */}
+        <label className="block text-left">
+          <span className="block text-sm text-gray-600">Upload photos</span>
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={(e) => setFiles(Array.from(e.target.files))}
+            className="w-full mt-2 border border-gray-300 rounded-md p-2 bg-gray-50 cursor-pointer"
+          />
+        </label>
 
-      <label>
-        Body type:
-        <select
-          value={form.bodytype}
-          onChange={(e) => handleChange("bodytype", e.target.value)}
+        {/* Submit button */}
+        <button
+          onClick={submit}
+          className="w-full bg-black text-white py-2.5 rounded-md font-medium hover:bg-gray-800 transition"
         >
-          <option value="Skinny">Skinny</option>
-          <option value="Slim">Slim</option>
-          <option value="Athletic">Athletic</option>
-          <option value="Curvy">Curvy</option>
-        </select>
-      </label>
-
-      <label>
-        Price 1h (USD):
-        <input
-          type="number"
-          placeholder="150"
-          value={form.price_1h}
-          onChange={(e) => handleChange("price_1h", e.target.value, true)}
-        />
-      </label>
-
-      <label>
-        Price 2h (USD):
-        <input
-          type="number"
-          placeholder="250"
-          value={form.price_2h}
-          onChange={(e) => handleChange("price_2h", e.target.value, true)}
-        />
-      </label>
-
-      <label>
-        Price full day (USD):
-        <input
-          type="number"
-          placeholder="800"
-          value={form.price_full_day}
-          onChange={(e) => handleChange("price_full_day", e.target.value, true)}
-        />
-      </label>
-
-      <label>
-        Description:
-        <textarea
-          placeholder="Short description..."
-          value={form.description}
-          onChange={(e) => handleChange("description", e.target.value)}
-        />
-      </label>
-
-      <label>
-        Upload photos:
-        <input
-          type="file"
-          multiple
-          accept="image/*"
-          onChange={(e) => setFiles(Array.from(e.target.files))}
-        />
-      </label>
-
-      <button
-        className="bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800"
-        onClick={submit}
-      >
-        Submit
-      </button>
+          Submit
+        </button>
+      </div>
     </div>
   );
 }
