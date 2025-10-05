@@ -56,7 +56,7 @@ export default function VerifyForm({ onVerified }) {
       onVerified(res.data.user);
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "❌ Verification failed");
+      alert(err.message || "❌ Verification failed");
     } finally {
       setLoading(false);
     }
